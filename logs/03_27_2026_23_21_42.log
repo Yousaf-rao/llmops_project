@@ -1,0 +1,8 @@
+{"timestamp": "2026-03-27T18:21:42.514092Z", "level": "info", "event": "Application start ho rahi hai..."}
+{"source": "Database", "status": "connecting", "timestamp": "2026-03-27T18:21:42.516522Z", "level": "info", "event": "Data fetching process shuru..."}
+{"progress": "33%", "timestamp": "2026-03-27T18:21:43.517785Z", "level": "info", "event": "Chunk 1 process ho raha hai..."}
+{"progress": "66%", "timestamp": "2026-03-27T18:21:44.022357Z", "level": "info", "event": "Chunk 2 process ho raha hai..."}
+{"progress": "99%", "timestamp": "2026-03-27T18:21:44.531737Z", "level": "info", "event": "Chunk 3 process ho raha hai..."}
+{"level": "warning", "battery_left": "15%", "timestamp": "2026-03-27T18:21:45.033697Z", "event": "System ki battery kam hai!"}
+{"timestamp": "2026-03-27T18:21:45.033697Z", "level": "info", "event": "Final calculation shuru..."}
+{"error_msg": "Kuch galat ho gaya simulation mein!", "severity": "High", "timestamp": "2026-03-27T18:21:45.033697Z", "level": "error", "event": "Application mein Error agaya!"}

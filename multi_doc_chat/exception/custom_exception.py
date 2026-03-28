@@ -1,66 +1,208 @@
-import sys
-import traceback
+import sys          # Misaal: Jaise aap doctor se poochte ho "abhi kya hua?" — sys bhi Python se poochta hai "abhi kaunsi error chal rahi hai?"
+import traceback    # Misaal: Jaise crime scene ki history — error kahan se shuru hoker kahan tak gaya
 from typing import Optional, cast
+# Optional matlab: "yeh value ho bhi sakti hai ya na bhi ho"
+# Misaal: Optional[str] → ya toh "hello" hoga ya None hoga
 
+
+# ═══════════════════════════════════════════════════════════════
+#  YEH HAMARI APNI CUSTOM ERROR CLASS HAI
+# ═══════════════════════════════════════════════════════════════
+#
+#  Python mein pehle se errors hote hain jaise:
+#    ZeroDivisionError  → 10/0 karne par
+#    FileNotFoundError  → file na mile toh
+#    ValueError         → wrong value dene par
+#
+#  Lekin un errors mein sirf ek line hoti hai jaise:
+#    "division by zero"
+#
+#  Hamari class yeh kaam karti hai:
+#    ✅ File ka naam bhi batao (kahan hua)
+#    ✅ Line number bhi batao (kis line par hua)
+#    ✅ Apna custom message bhi do
+#    ✅ Poori history (traceback) bhi save karo
+#
+#  USE KAISE KARO:
+#    raise DocumentPortalException("Document nahi mila!")
+# ═══════════════════════════════════════════════════════════════
 class DocumentPortalException(Exception):
+
     def __init__(self, error_message, error_details: Optional[object] = None):
-        # 1. Normalize message (Error message ko string mein badalna)
+        #
+        # error_message  → aap apna message dete ho
+        #   MISAAL: "File upload nahi hoi" ya "Database band hai"
+        #
+        # error_details  → optional: original Python error dete ho
+        #   MISAAL: except Exception as e → e yahan dete ho
+        #   Agar nahi diya toh None hoga (default)
+        #
+
+        # ┌─────────────────────────────────────────────────────┐
+        # │  STEP 1: MESSAGE KO SAFE STRING BANAO               │
+        # └─────────────────────────────────────────────────────┘
+        #
+        #  Kabhi kabhi error_message ek Exception object hota hai
+        #  Kabhi seedha "string" hota hai
+        #  Dono cases mein str() lagao — safe string mil jayegi
+        #
+        #  MISAAL:
+        #    error_message = "File nahi mili"     → norm_msg = "File nahi mili"
+        #    error_message = ValueError("galat!") → norm_msg = "galat!"
+        #
         if isinstance(error_message, BaseException):
-            norm_msg = str(error_message)
+            norm_msg = str(error_message)   # Exception object tha → text nikaal liya
         else:
-            norm_msg = str(error_message)
-            
-        # 2. Resolve exc_info (Error ki details nikalna)
-        exc_type = exc_value = exc_tb = None
+            norm_msg = str(error_message)   # Pehle se string tha → waise hi rakha
+
+        # ┌─────────────────────────────────────────────────────┐
+        # │  STEP 2: ERROR KI TECHNICAL DETAILS NIKALO          │
+        # └─────────────────────────────────────────────────────┘
+        #
+        #  Teen cheezein chahiye:
+        #    exc_type  → Error ki qisam  → MISAAL: ZeroDivisionError
+        #    exc_value → Error ka message → MISAAL: "division by zero"
+        #    exc_tb    → Error ka trail   → MISAAL: line 10 → line 5 → line 2
+        #
+        exc_type = exc_value = exc_tb = None   # pehle teeno ko khali rakho
+
         if error_details is None:
+            # Aap ne koi error_details nahi diya
+            # Python se poocho: "abhi kaunsi error active hai?"
+            # MISAAL: except ke andar ho toh Python batayega kya hua
             exc_type, exc_value, exc_tb = sys.exc_info()
+
         else:
-            if hasattr(error_details, "exc_info"):  # e.g., sys
+            if hasattr(error_details, "exc_info"):
+                # Agar koi special object diya jisme exc_info() method ho (bahut rare case)
                 exc_info_obj = cast(sys, error_details)
                 exc_type, exc_value, exc_tb = exc_info_obj.exc_info()
+
             elif isinstance(error_details, BaseException):
+                # Seedha Exception object diya — yeh sabse common case hai!
+                #
+                # MISAAL:
+                #   except Exception as e:
+                #       raise DocumentPortalException("galat!", error_details=e)
+                #                                                           ↑ yeh e yahan aata hai
+                #
+                #   exc_type  = ZeroDivisionError   (error ki qisam)
+                #   exc_value = e                    (error ka object)
+                #   exc_tb    = e.__traceback__      (kahan hua trail)
+                #
                 exc_type, exc_value, exc_tb = type(error_details), error_details, error_details.__traceback__
+
             else:
+                # Kuch aur diya — directly Python se lo
                 exc_type, exc_value, exc_tb = sys.exc_info()
 
-        # 3. Walk to the last frame to report the most relevant location (Asal masle ki jagah dhoondna)
-        last_tb = exc_tb
+        # ┌─────────────────────────────────────────────────────┐
+        # │  STEP 3: ASAL MASLE KI LINE DHOONDO                 │
+        # └─────────────────────────────────────────────────────┘
+        #
+        #  Error ek chain ki tarah hoti hai:
+        #    main() → load_file() → read_line() → 💥 ERROR
+        #
+        #  Traceback (exc_tb) mein yeh poori chain hoti hai
+        #  Hum seedha AAKHRI frame tak pohanchte hain — wahan actual error hua
+        #
+        #  MISAAL (chain ka safar):
+        #    exc_tb           → main() ka frame
+        #    exc_tb.tb_next   → load_file() ka frame
+        #    exc_tb.tb_next   → read_line() ka frame  ← last_tb yahan rukta hai
+        #    tb_next = None   → chain khatam
+        #
+        last_tb = exc_tb                    # chain ki shuruwat se shuru karo
         while last_tb and last_tb.tb_next:
-            last_tb = last_tb.tb_next
+            last_tb = last_tb.tb_next       # agle frame par jao jab tak chain khatam na ho
 
+        # Aakhri frame se file ka naam nikalo
+        # MISAAL: self.file_name = "custom_exception.py"
         self.file_name = last_tb.tb_frame.f_code.co_filename if last_tb else "<unknown>"
+
+        # Aakhri frame se line number nikalo
+        # MISAAL: self.lineno = 113
         self.lineno = last_tb.tb_lineno if last_tb else -1
+
+        # Clean message save karo
+        # MISAAL: self.error_message = "Math ka calculation fail ho gaya!"
         self.error_message = norm_msg
 
-        # 4. Full pretty traceback (if available) - (Mukammal history save karna)
+        # ┌─────────────────────────────────────────────────────┐
+        # │  STEP 4: POORI ERROR HISTORY SAVE KARO              │
+        # └─────────────────────────────────────────────────────┘
+        #
+        #  traceback.format_exception() → error ki poori kahani deta hai
+        #
+        #  MISAAL output:
+        #    Traceback (most recent call last):
+        #      File "test.py", line 58, in <module>
+        #        faulty_function()
+        #      File "test.py", line 55, in faulty_function
+        #        return 10 / 0        ← yahan error hua
+        #    ZeroDivisionError: division by zero
+        #
         if exc_type and exc_tb:
             self.traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+            # "".join() → list ki saari lines ko ek bari string mein jodta hai
         else:
-            self.traceback_str = ""
+            self.traceback_str = ""  # koi traceback nahi mila → khali rakho
 
-        # Parent class (Exception) ko initialize karna
+        # Parent Exception class ko bhi batao yeh error kya hai
+        # RESULT: Python ka error system samajh jaata hai is error ka message
         super().__init__(self.__str__())
 
+    # ─────────────────────────────────────────────────────────
+    #  JAB print(error) LIKHTE HAIN TAB YEH CHALTA HAI
+    # ─────────────────────────────────────────────────────────
     def __str__(self):
+        # MISAAL output:
+        # "Math ka calculation fail ho gaya! (File: custom_exception.py, Line: 113)"
         return f"{self.error_message} (File: {self.file_name}, Line: {self.lineno})"
 
+    # ─────────────────────────────────────────────────────────
+    #  JAB repr(error) LIKHTE HAIN TAB YEH CHALTA HAI
+    #  (Zyada detailed format — debugging ke liye)
+    # ─────────────────────────────────────────────────────────
     def __repr__(self):
+        # MISAAL output:
+        # DocumentPortalException(file='custom_exception.py', line=113, message='Math ka...')
         return f"DocumentPortalException(file={self.file_name!r}, line={self.lineno}, message={self.error_message!r})"
 
 
-# --- TEST KARNE KE LIYE (Aap isay run kar ke check kar sakte hain) ---
+# ═══════════════════════════════════════════════════════════════
+#  DIRECT RUN TEST — python custom_exception.py likhne par
+# ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+
     def faulty_function():
-        # Jaan boojh kar ek error paida karte hain (Divide by zero)
+        # Jaan boojh kar 10 ko 0 se divide karte hain
+        # Yeh hamesha ZeroDivisionError deta hai
+        # MISAAL: Jaise ATM mein 0 rupay withdraw karne ki koshish karo
         return 10 / 0
 
     try:
-        faulty_function()
+        faulty_function()   # Yahan error aayega
+
     except Exception as original_error:
-        # Original error ko pakar kar apne Custom Exception mein daal diya
-        custom_error = DocumentPortalException("Math ka calculation fail ho gaya!", error_details=original_error)
-        
+        # original_error = Python ka ZeroDivisionError object
+        # Ise apni class mein wrap karo — apna message + file + line mile
+        custom_error = DocumentPortalException(
+            "Math ka calculation fail ho gaya!",   # apna custom message
+            error_details=original_error           # original error diya
+        )
+
         print("--- CUSTOM ERROR PAKRA GAYA ---")
         print(repr(custom_error))
+        # EXPECTED OUTPUT:
+        # DocumentPortalException(file='...custom_exception.py', line=113, message='Math ka calculation fail ho gaya!')
+
         print("\n--- ERROR KI MUKAMMAL HISTORY (Traceback) ---")
         print(custom_error.traceback_str)
+        # EXPECTED OUTPUT:
+        # Traceback (most recent call last):
+        #   File "custom_exception.py", line 117, in <module>
+        #     faulty_function()
+        #   File "custom_exception.py", line 113, in faulty_function
+        #     return 10 / 0
+        # ZeroDivisionError: division by zero
