@@ -1,4 +1,6 @@
 import os
+# Hum python-dotenv ka package use kar ke `.env` file load kareingay
+from dotenv import load_dotenv
 # Hum LangChain se ChatGroq import kar rahe hain taake Groq LLM model use kar sakein
 from langchain_groq import ChatGroq
 # Hum LangChain se ChatGoogleGenerativeAI import kar rahe hain taake Google Gemini models use kar sakein
@@ -18,11 +20,30 @@ logger_setup = CustomLogger()
 # Is existing file (__file__) ka specific naam use kar k logger initialize karaya taake pata chale console log kahan se aaye hain
 logger = logger_setup.get_logger(__file__)
 
+class ApiKeyManager:
+    # Ye un API keys ki list hai jo apke models chalane ke liye zaroori hain
+    REQUIRED_KEYS = ["GROQ_API_KEY", "GOOGLE_API_KEY"]
+    
+    @classmethod
+    def validate_keys(cls):
+        # Pehle .env file load karte hain ta k keys agar wahan hain to environment mein ajayain
+        load_dotenv()
+        
+        # Ye function check karega ke saray zaroori API keys environment/system mein maujood hain ya nahi
+        missing_keys = [key for key in cls.REQUIRED_KEYS if not os.getenv(key)]
+        if missing_keys:
+             # Agar keys missing hon tou pehle hi custom exception k through hum application rok dengay
+             raise DocumentPortalException(f"Environment main ye API Keys missing hain: {', '.join(missing_keys)}")
+        logger.info("Saari REQUIRED_KEYS (API keys) environment mein successfully verify ho gayi hain.")
+
 class ModelLoader:
     # Ye ModelLoader class ka constructor (yani jab class ka object start up ho) call hota hai
     def __init__(self, config_path: str = None):
         # Yahan hum shru me try block use kar rahe hain taake program crash na ho aur error hum pakar lein
         try:
+            # Apne ModelLoader ko start karne se pehle config check k bad hum API keys b check karlen ge
+            ApiKeyManager.validate_keys()
+
             # Apne loader utility (load_config) ki madad se YAML config parhi, aur output class attribute (self.config) me save ho gayi
             self.config = load_config(config_path)
             # Log kiya ke configuration successfully object mein assign ho chuki hai
@@ -116,3 +137,19 @@ class ModelLoader:
          except Exception as e:
                # Try format crash krke log or detailed traceback output humme Custom Exception console me print krna bhot awwal farz h developer p
                raise DocumentPortalException(f"LLM (Language Model) create karne main error aa gya: {e}", e)
+
+if __name__ == "__main__":
+    # Ye test block hai jo check karne ke liye kaam aata hai (Testing Groq & Embeddings)
+    print("------------------------------------------")
+    print("Initializing Model Loader...")
+    
+    loader = ModelLoader()
+    
+    print("\n[1] Embedding Model Initialize Kar Rahe Hain:")
+    embedding_model = loader.get_embedding_model()
+    print(f"-> SUCCESS: Embedding Model yeh raha:\n{embedding_model}")
+    
+    print("\n[2] Groq LLM Initialize Kar Rahe Hain:")
+    groq_model = loader.get_llm(provider_name="groq")
+    print(f"-> SUCCESS: Groq Model yeh raha:\n{groq_model}")
+    print("------------------------------------------")
