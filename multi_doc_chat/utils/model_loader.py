@@ -139,17 +139,51 @@ class ModelLoader:
                raise DocumentPortalException(f"LLM (Language Model) create karne main error aa gya: {e}", e)
 
 if __name__ == "__main__":
-    # Ye test block hai jo check karne ke liye kaam aata hai (Testing Groq & Embeddings)
+    # Ye test block hai jo check karne ke liye kaam aata hai (Testing Groq, Google, & Embeddings)
+    # Aap isay terminal mein `python -m multi_doc_chat.utils.model_loader` likh kar run kar sakte hain
     print("------------------------------------------")
-    print("Initializing Model Loader...")
+    print("🚀 Initializing Model Loader Teting...")
     
-    loader = ModelLoader()
-    
-    print("\n[1] Embedding Model Initialize Kar Rahe Hain:")
-    embedding_model = loader.get_embedding_model()
-    print(f"-> SUCCESS: Embedding Model yeh raha:\n{embedding_model}")
-    
-    print("\n[2] Groq LLM Initialize Kar Rahe Hain:")
-    groq_model = loader.get_llm(provider_name="groq")
-    print(f"-> SUCCESS: Groq Model yeh raha:\n{groq_model}")
+    try:
+        loader = ModelLoader()
+        
+        print("\n[1] 🧠 Embedding Model Initialize Kar Rahe Hain:")
+        embedding_model = loader.get_embedding_model()
+        print(f"-> SUCCESS: Embedding Model Load Hogaya!\n")
+        
+        print("\n[2] ⚡ Groq LLM Initialize Kar Rahe Hain:")
+        groq_model = loader.get_llm(provider_name="groq")
+        print(f"-> SUCCESS: Groq Model Load Hogaya!\n")
+
+        print("\n[3] 🌐 Google (Gemini) LLM Initialize Kar Rahe Hain:")
+        google_model = loader.get_llm(provider_name="google")
+        print(f"-> SUCCESS: Google Model Load Hogaya!\n")
+        
+    except Exception as e:
+        print(f"\n❌ ERROR AYA HAI: Kripya apni .env ya config.yaml check karein.\nDetails: {e}")
+        
     print("------------------------------------------")
+
+"""
+=============================================================================
+🎯 CODE KA DETAILED OBJECTIVE (MAQSAD)
+=============================================================================
+Is `model_loader.py` file ka main maqsad (objective) aapke LLMs (jese Groq,
+Google Gemini) aur Embeddings (Google Generative AI) ko safely aik jagah 
+se load aur initialize karna hai. 
+
+Ye file application ka 'Central Brain Hub' ya factory hai.
+
+✅ Is Model Loader Ke Fawayed (Objectives Achieved):
+1. API Validation: "ApiKeyManager" pehle .env check karta hai. Agar keys 
+   (GROQ_API_KEY, GOOGLE_API_KEY) na milein, to pehle hi ruk jata hai taake 
+   baad mein achanak program crash na ho.
+2. Centralized Configuration Management: Models ki saari settings 
+   (temperature, token limits, names) config file se aati hain. Agar kal 
+   ko model "gemini-1.5" se "gemini-2.0" karna ho, tou yahan code nahi 
+   chernaa parayga, sirf config.yaml update hogi.
+3. Easy Model Switching: Agar user parameter "groq" pass karay to LLaMA/Mixtral
+   run hoga, aur agar "google" pass karay to Gemini run hoga. Code ko maintain 
+   karna nihayat asaan ho jata hai.
+=============================================================================
+"""

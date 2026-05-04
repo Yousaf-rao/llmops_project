@@ -206,3 +206,34 @@ if __name__ == "__main__":
         #   File "custom_exception.py", line 113, in faulty_function
         #     return 10 / 0
         # ZeroDivisionError: division by zero
+
+"""
+=============================================================================
+🎯 CODE KA DETAILED OBJECTIVE (MAQSAD)
+=============================================================================
+Is custom exception (DocumentPortalException) file ka main maqsad yeh hai ke 
+Python ke aam (normal) errors ko zyada detail aur asaan zaban mein capture 
+kiya jaye, taake Production (yaani jab app live ho) mein jab bhi koi 
+masla aaye, to error ki debugging (masla talash karna) nihayat asaan ho. 
+
+⚠️ Aam Python Errors mein kya masla hai?
+Misaal ke tor par jab error aata hai to wo sirf ek line deta hai (jaise 
+"division by zero"). Bade projects (jaise apka LLMOps project) mein jab 
+hazaaron lines ka code ho, to yeh pata lagana mushkil hota hai ke:
+  1. Error kis specific file mein aaya?
+  2. Kis line number par fail hua?
+  3. Error aane k waqt module kya kaam kar raha tha (custom message)?
+  4. Error pichey kahan se shuru ho kar yahan tak pohancha (Traceback)?
+
+✅ Is Custom Exception Ka Faida (Objective Achieved):
+1. User-Friendly Messages: Hum har error par apna dsi/custom message de 
+   sakte hain (e.g., "Vector Database se connection toot gaya").
+2. Pinpoint Accuracy: Yeh code khud-ba-khud (automatically) python ke sys 
+   module aur traceback chain ke aakhri hisse (last frame) tak jata hai aur 
+   root cause wali file ka naam (self.file_name) aur line (self.lineno) 
+   nikal leta hai.
+3. Traceback Persistence: Yeh poori error history (traceback_str) apne 
+   andar save kar leta hai. Ise log files (.log) mein write kar sakte hain, 
+   jis se bug ya error ko theek karna minto (minutes) ka kaam ban jata hai.
+=============================================================================
+"""
